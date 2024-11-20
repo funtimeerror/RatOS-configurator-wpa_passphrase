@@ -538,4 +538,35 @@ const doctor = program
 		);
 	});
 
+const host = program.command('host').description('Commands used for managing the Operating System');
+
+host
+	.command('set-wifi-network')
+	.description('set the wifi network ssid and password')
+	.action(async () => {});
+
+host
+	.command('set-hostname')
+	.requiredOption('-n, --hostname <hostname>', 'Desired hostname')
+	.description('change your devices hostname')
+	.action(async (options) => {
+		await ensureSudo();
+		const cmdSignal = createSignal<string | null>();
+		const $$ = $({
+			quiet: true,
+			log(entry) {
+				if (entry.kind === 'cmd') {
+					cmdSignal(entry.cmd);
+					getLogger().info('Running command: ' + entry.cmd);
+				}
+			},
+		});
+		const exitCode = (await $$`sudo hostnamectl set-hostname ${options.hostname}`).exitCode;
+		if (exitCode === 0) {
+			echo('Hostname has been changed, please reboot your Raspberry Pi for the change to take effect');
+		} else {
+			echo('Hostname was not changed successfully');
+		}
+	});
+
 await program.parseAsync();
